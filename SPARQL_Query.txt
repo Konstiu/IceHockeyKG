@@ -1,0 +1,192 @@
+PREFIX hockey: <http://hockey-kg.org/ontology#>
+PREFIX ep:     <http://hockey-kg.org/resource/>
+PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
+
+SELECT ?player ?name
+WHERE {
+  ?player a hockey:Player ;
+          foaf:name ?name .
+  FILTER(CONTAINS(LCASE(STR(?name)), "gretzky"))
+}
+
+
+
+
+PREFIX hockey: <http://hockey-kg.org/ontology#>
+PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
+PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?name ?teamLabel ?from ?until
+WHERE {
+  ?player a hockey:Player ;
+          foaf:name ?name ;
+          hockey:playsFor ?team .
+
+  FILTER(LCASE(STR(?name)) = "wayne gretzky")
+
+  ?team a hockey:Team ;
+        rdfs:label ?teamLabel .
+
+  OPTIONAL { ?team hockey:memberFrom ?from }
+  OPTIONAL { ?team hockey:memberUntil ?until }
+}
+ORDER BY ?from ?teamLabel
+
+
+
+
+
+PREFIX hockey: <http://hockey-kg.org/ontology#>
+PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
+PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?name ?teamLabel ?from ?until
+WHERE {
+  ?player a hockey:Player ;
+          foaf:name ?name ;
+          hockey:playsFor ?team .
+
+  FILTER(LCASE(STR(?name)) = "wayne gretzky")
+
+  ?team a hockey:Team ;
+        rdfs:label ?teamLabel .
+
+  OPTIONAL { ?team hockey:memberFrom ?from }
+  OPTIONAL { ?team hockey:memberUntil ?until }
+}
+ORDER BY ?from ?teamLabel
+
+
+
+
+PREFIX hockey: <http://hockey-kg.org/ontology#>
+PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
+PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT DISTINCT ?name
+WHERE {
+  ?player a hockey:Player ;
+          foaf:name ?name ;
+          hockey:playsFor ?team .
+
+  ?team rdfs:label ?teamLabel .
+  FILTER(LCASE(STR(?teamLabel)) = "edmonton oilers")
+}
+ORDER BY ?name
+
+
+
+
+PREFIX hockey: <http://hockey-kg.org/ontology#>
+PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
+PREFIX owl:    <http://www.w3.org/2002/07/owl#>
+
+SELECT ?name ?wikidata ?wiki
+WHERE {
+  ?player a hockey:Player ;
+          foaf:name ?name .
+
+  FILTER(LCASE(STR(?name)) = "wayne gretzky")
+
+  OPTIONAL { ?player owl:sameAs ?wikidata }
+  OPTIONAL { ?player hockey:wikipediaEN ?wiki }
+}
+
+
+
+
+PREFIX hockey: <http://hockey-kg.org/ontology#>
+PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
+PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?name ?confidence ?teamLabel ?from ?until
+WHERE {
+  ?player a hockey:Player ;
+          foaf:name ?name ;
+          hockey:matchConfidence ?confidence ;
+          hockey:playsFor ?team .
+
+  FILTER(LCASE(STR(?name)) = "wayne gretzky")
+
+  ?team rdfs:label ?teamLabel .
+  OPTIONAL { ?team hockey:memberFrom ?from }
+  OPTIONAL { ?team hockey:memberUntil ?until }
+}
+ORDER BY ?from
+
+
+PREFIX hockey: <http://hockey-kg.org/ontology#>
+PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
+PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?seasonLabel ?name (MAX(?ppg) AS ?maxPPG)
+WHERE {
+  ?player a hockey:Player ;
+          foaf:name ?name ;
+          hockey:hasStats ?stats .
+
+  ?stats hockey:inLeague ?league ;
+         hockey:inSeason ?season ;
+         hockey:pointsPerGame ?ppg .
+
+  ?league hockey:leagueName "NHL" .
+  ?season rdfs:label ?seasonLabel .
+}
+GROUP BY ?seasonLabel ?name
+ORDER BY DESC(?maxPPG)
+LIMIT 20
+
+
+
+PREFIX hockey: <http://hockey-kg.org/ontology#>
+PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
+
+SELECT ?name (COUNT(DISTINCT ?team) AS ?teamCount)
+WHERE {
+  ?player a hockey:Player ;
+          foaf:name ?name ;
+          hockey:playsFor ?team .
+}
+GROUP BY ?name
+ORDER BY DESC(?teamCount)
+LIMIT 20
+
+
+
+
+PREFIX hockey: <http://hockey-kg.org/ontology#>
+PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
+PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?teamLabel ?from ?until
+WHERE {
+  ?player a hockey:Player ;
+          foaf:name "Wayne Gretzky" ;
+          hockey:playsFor ?team .
+
+  ?team rdfs:label ?teamLabel .
+
+  OPTIONAL { ?team hockey:memberFrom ?from }
+  OPTIONAL { ?team hockey:memberUntil ?until }
+}
+ORDER BY ?from
+
+
+
+PREFIX hockey: <http://hockey-kg.org/ontology#>
+
+SELECT ?leagueName (ROUND(AVG(?ppg)*1000)/1000 AS ?avgPPG)
+WHERE {
+  ?player hockey:hasStats ?stats .
+  ?stats hockey:inLeague ?league ;
+         hockey:pointsPerGame ?ppg .
+
+  ?league hockey:leagueName ?leagueName .
+  FILTER(?ppg > 0 && ?ppg < 4)
+}
+GROUP BY ?leagueName
+ORDER BY DESC(?avgPPG)
+
+
+
+
