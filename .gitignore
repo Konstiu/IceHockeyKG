@@ -1,3 +1,4 @@
 *.ttl
 *.csv
 apache-jena-fuseki-6.0.0/
+.codex
