@@ -1,115 +1,89 @@
-# 🏒 Hockey Knowledge Graph
+# IceHockeyKG: Knowledge Graph for NHL Players and Statistics
 
-This project builds a Knowledge Graph (RDF) of ice hockey players, their statistics, and team history.
+This project builds an RDF Knowledge Graph from elite hockey data and enriches player entities with external Wikidata links and team history.
 
----
+## Project Goal
 
-## 📦 Dataset
+Create a practical KG pipeline that supports:
+- data integration from heterogeneous CSV sources,
+- KG construction in RDF/Turtle,
+- entity enrichment with external knowledge,
+- SPARQL querying for player, team, and performance analytics.
 
-The initial data comes from Kaggle:
+## Data Sources
 
-* Elite Prospects Hockey Stats Dataset
-  [https://www.kaggle.com/datasets/mjavon/elite-prospects-hockey-stats-player-data?resource=download&select=player_stats.csv](https://www.kaggle.com/datasets/mjavon/elite-prospects-hockey-stats-player-data?resource=download&select=player_stats.csv)
+- Kaggle: Elite Prospects Hockey Stats Dataset  
+  https://www.kaggle.com/datasets/mjavon/elite-prospects-hockey-stats-player-data
+- Local CSV inputs:
+  - `player_dim.csv`
+  - `player_stats.csv`
 
-It includes:
+## Repository Contents
 
-* player information (`player_dim.csv`)
-* player statistics (`player_stats.csv`)
+- `ep_to_rdf.py`: CSV -> base KG (`hockey_kg.ttl`)
+- `wikidata_teams.py`: Wikidata enrichment (`enrichment.ttl`, `match_report.csv`)
+- `hockey_kg.ttl`: base KG
+- `enrichment.ttl`: enrichment triples
+- `full_hockey_kg.ttl`: merged KG (base + enrichment)
+- `SPARQL_Query.txt`: curated SPARQL query collection
+- `portfolio.md`: project portfolio report aligned to course learning outcomes
 
-💡 Note:
-The dataset can be extended or improved by scraping data directly from Elite Prospects.
+## Environment
 
----
+Recommended Python version: `3.10+`
 
-## ⚙️ Setup (Apache Jena Fuseki)
+Install dependencies:
 
-Download Apache Jena Fuseki here:
+```bash
+pip install pandas rdflib requests
+```
 
-* Apache Jena Fuseki
-  [https://jena.apache.org/download/](https://jena.apache.org/download/)
+## Pipeline
 
----
+1. Build base KG from CSV:
 
-## ▶️ Running the Knowledge Graph
+```bash
+python ep_to_rdf.py
+```
 
-Start the Fuseki server with:
+2. Enrich players with Wikidata and teams:
+
+```bash
+python wikidata_teams.py
+```
+
+3. Merge outputs to one KG (if needed):
+
+```bash
+cat hockey_kg.ttl enrichment.ttl > full_hockey_kg.ttl
+```
+
+## Running with Apache Jena Fuseki
+
+Start Fuseki (example):
 
 ```bash
 ./fuseki-server --file=/home/konsti/Documents/Uni/Master/sem2/KG/full_hockey_kg.ttl /hockey
 ```
 
-Then open in browser:
+Open:
 
-```
-http://localhost:3030/hockey
-```
+- `http://localhost:3030/`
+- dataset path: `/hockey`
 
----
+Run the queries from `SPARQL_Query.txt` in the Fuseki query UI.
 
-## 📁 Project Structure
+## Current Output Snapshot
 
-This repository includes:
+Based on generated files in this repository:
+- Players in base KG: `109,990`
+- Leagues: `29`
+- Seasons: `741`
+- Career stats nodes: `402,346`
+- Enriched players (`match_report.csv`): `16,979` (all `HIGH` confidence via EP ID)
 
-* CSV files (raw data)
-* RDF files (`.ttl`)
-* scripts to generate the Knowledge Graph
+## Notes
 
-### 🔴 Important
-
-The ZIP archive contains:
-
-* all CSV files
-* all generated `.ttl` files
-
-➡️ everything needed to run the project is included in the same archive
-
----
-
-## 🧠 Data Processing
-
-The pipeline:
-
-1. CSV → RDF (`ep_to_rdf.py`)
-2. Wikidata enrichment (`wikidata_teams.py`)
-3. Combined into:
-
-   ```
-   full_hockey_kg.ttl
-   ```
-
----
-
-## 🔎 Querying
-
-Use the Fuseki UI to run SPARQL queries on the dataset.
-
-Example:
-
-```sparql
-SELECT ?player ?team
-WHERE {
-  ?player <http://hockey-kg.org/ontology#playsFor> ?team .
-}
-LIMIT 10
-```
-
----
-
-## 🚀 Notes / Possible Improvements
-
-* Improve data quality (e.g. remove outliers)
-* Add more detailed statistics (games played, assists, goals)
-* Improve team modeling (separate membership entity)
-* Use a web scraper for more complete Elite Prospects data
-
----
-
-## ✅ That’s it
-
-You should now be able to:
-
-* load the dataset
-* start Fuseki
-* run SPARQL queries
-
----
+- Some team memberships come from Wikidata statements and can be incomplete for specific players.
+- Dates and labels depend on source quality.
+- The project portfolio and LO mapping are documented in `portfolio.md`.

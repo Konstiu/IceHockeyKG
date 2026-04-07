@@ -1,5 +1,5 @@
+# Query 1: Find a player by name fragment
 PREFIX hockey: <http://hockey-kg.org/ontology#>
-PREFIX ep:     <http://hockey-kg.org/resource/>
 PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
 
 SELECT ?player ?name
@@ -8,10 +8,10 @@ WHERE {
           foaf:name ?name .
   FILTER(CONTAINS(LCASE(STR(?name)), "gretzky"))
 }
+LIMIT 20
 
 
-
-
+# Query 2: Team history of one player (from Wikidata enrichment)
 PREFIX hockey: <http://hockey-kg.org/ontology#>
 PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
 PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
@@ -33,32 +33,7 @@ WHERE {
 ORDER BY ?from ?teamLabel
 
 
-
-
-
-PREFIX hockey: <http://hockey-kg.org/ontology#>
-PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
-PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
-
-SELECT ?name ?teamLabel ?from ?until
-WHERE {
-  ?player a hockey:Player ;
-          foaf:name ?name ;
-          hockey:playsFor ?team .
-
-  FILTER(LCASE(STR(?name)) = "wayne gretzky")
-
-  ?team a hockey:Team ;
-        rdfs:label ?teamLabel .
-
-  OPTIONAL { ?team hockey:memberFrom ?from }
-  OPTIONAL { ?team hockey:memberUntil ?until }
-}
-ORDER BY ?from ?teamLabel
-
-
-
-
+# Query 3: All players that played for a given team
 PREFIX hockey: <http://hockey-kg.org/ontology#>
 PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
 PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
@@ -73,10 +48,10 @@ WHERE {
   FILTER(LCASE(STR(?teamLabel)) = "edmonton oilers")
 }
 ORDER BY ?name
+LIMIT 200
 
 
-
-
+# Query 4: External links for a specific player
 PREFIX hockey: <http://hockey-kg.org/ontology#>
 PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
 PREFIX owl:    <http://www.w3.org/2002/07/owl#>
@@ -93,8 +68,7 @@ WHERE {
 }
 
 
-
-
+# Query 5: Match confidence and team relations
 PREFIX hockey: <http://hockey-kg.org/ontology#>
 PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
 PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
@@ -115,6 +89,7 @@ WHERE {
 ORDER BY ?from
 
 
+# Query 6: Top points-per-game seasons in NHL
 PREFIX hockey: <http://hockey-kg.org/ontology#>
 PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
 PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
@@ -137,7 +112,7 @@ ORDER BY DESC(?maxPPG)
 LIMIT 20
 
 
-
+# Query 7: Players with most distinct teams
 PREFIX hockey: <http://hockey-kg.org/ontology#>
 PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
 
@@ -152,27 +127,7 @@ ORDER BY DESC(?teamCount)
 LIMIT 20
 
 
-
-
-PREFIX hockey: <http://hockey-kg.org/ontology#>
-PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
-PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
-
-SELECT ?teamLabel ?from ?until
-WHERE {
-  ?player a hockey:Player ;
-          foaf:name "Wayne Gretzky" ;
-          hockey:playsFor ?team .
-
-  ?team rdfs:label ?teamLabel .
-
-  OPTIONAL { ?team hockey:memberFrom ?from }
-  OPTIONAL { ?team hockey:memberUntil ?until }
-}
-ORDER BY ?from
-
-
-
+# Query 8: Average points-per-game per league
 PREFIX hockey: <http://hockey-kg.org/ontology#>
 
 SELECT ?leagueName (ROUND(AVG(?ppg)*1000)/1000 AS ?avgPPG)
@@ -186,7 +141,4 @@ WHERE {
 }
 GROUP BY ?leagueName
 ORDER BY DESC(?avgPPG)
-
-
-
-
+LIMIT 30
