@@ -35,6 +35,12 @@ Use the ZIP archives in `exports/`:
 - `exports/raw_data.zip` -> extract to `data/raw/`
 - `exports/processed_outputs.zip` -> extract to `data/processed/`
 
+Quick setup:
+
+```bash
+./scripts/unpack_data.sh
+```
+
 ## Environment
 
 Recommended Python: `3.10+`
