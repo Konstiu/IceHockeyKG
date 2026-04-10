@@ -1,41 +1,48 @@
-# IceHockeyKG: Knowledge Graph for NHL Players and Statistics
+# IceHockeyKG: Knowledge Graph for Hockey Players and Career Analytics
 
-This project builds an RDF Knowledge Graph from elite hockey data and enriches player entities with external Wikidata links and team history.
+This project builds an RDF/Turtle knowledge graph from EliteProspects CSV data, enriches players with Wikidata/Wikipedia information, and adds a prediction workflow for career continuation.
 
-## Project Goal
+Current setup: querying and analytics are done via GraphDB.
 
-Create a practical KG pipeline that supports:
-- data integration from heterogeneous CSV sources,
-- KG construction in RDF/Turtle,
-- entity enrichment with external knowledge,
-- SPARQL querying for player, team, and performance analytics.
+## Project Scope
+
+- CSV integration (`data/raw/player_dim.csv`, `data/raw/player_stats.csv`)
+- RDF KG construction (`data/processed/hockey_kg.ttl`)
+- Entity enrichment with Wikidata links, photos, and team history (`data/processed/enrichment.ttl`)
+- SPARQL exploration (`queries/SPARQL_Query.txt`)
+- ML-based career continuation prediction (`scripts/predict.py`)
 
 ## Data Sources
 
 - Kaggle: Elite Prospects Hockey Stats Dataset  
   https://www.kaggle.com/datasets/mjavon/elite-prospects-hockey-stats-player-data
-- Local CSV inputs:
-  - `player_dim.csv`
-  - `player_stats.csv`
+- Wikidata SPARQL endpoint for enrichment
 
-## Repository Contents
+## Repository Layout
 
-- `ep_to_rdf.py`: CSV -> base KG (`hockey_kg.ttl`)
-- `wikidata_teams.py`: Wikidata enrichment (`enrichment.ttl`, `match_report.csv`)
-- `hockey_kg.ttl`: base KG
-- `enrichment.ttl`: enrichment triples
-- `full_hockey_kg.ttl`: merged KG (base + enrichment)
-- `SPARQL_Query.txt`: curated SPARQL query collection
-- `portfolio.md`: project portfolio report aligned to course learning outcomes
+- `scripts/`: executable Python pipelines (`ep_to_rdf.py`, `wikidata_enrichment.py`, `predict.py`)
+- `data/raw/`: input datasets (source CSVs)
+- `data/processed/`: generated KG/enrichment outputs and prediction outputs
+- `queries/`: SPARQL query collection
+- `docs/`: portfolio, LO mapping, one-pager files
+- `exports/`: upload-ready ZIP artifacts
+
+## Data Availability
+
+Raw and processed data files (`.csv`, `.ttl`, `.parquet`) are excluded from Git via `.gitignore`.
+Use the ZIP archives in `exports/`:
+
+- `exports/raw_data.zip` -> extract to `data/raw/`
+- `exports/processed_outputs.zip` -> extract to `data/processed/`
 
 ## Environment
 
-Recommended Python version: `3.10+`
+Recommended Python: `3.10+`
 
 Install dependencies:
 
 ```bash
-pip install pandas rdflib requests
+pip install pandas rdflib requests rapidfuzz unidecode pyarrow scikit-learn
 ```
 
 ## Pipeline
@@ -43,47 +50,40 @@ pip install pandas rdflib requests
 1. Build base KG from CSV:
 
 ```bash
-python ep_to_rdf.py
+python scripts/ep_to_rdf.py
 ```
 
-2. Enrich players with Wikidata and teams:
+2. Run Wikidata enrichment:
 
 ```bash
-python wikidata_teams.py
+python scripts/wikidata_enrichment.py
 ```
 
-3. Merge outputs to one KG (if needed):
+3. `wikidata_enrichment.py` also auto-creates `data/processed/full_hockey_kg.ttl` if `data/processed/hockey_kg.ttl` exists.
+
+4. Load KG into GraphDB and run SPARQL queries from `queries/SPARQL_Query.txt`.
+
+5. Run career prediction (expects a running SPARQL endpoint, default GraphDB):
 
 ```bash
-cat hockey_kg.ttl enrichment.ttl > full_hockey_kg.ttl
+python scripts/predict.py
 ```
 
-## Running with Apache Jena Fuseki
+## GraphDB Endpoint Notes
 
-Start Fuseki (example):
+- `scripts/predict.py` uses by default:
+  - `http://localhost:7200/repositories/HockeyKG`
+- If your repository name/port differs, update `GRAPHDB_ENDPOINT` in `scripts/predict.py`.
 
-```bash
-./fuseki-server --file=/home/konsti/Documents/Uni/Master/sem2/KG/full_hockey_kg.ttl /hockey
-```
+## Current Snapshot (from files in this repo)
 
-Open:
-
-- `http://localhost:3030/`
-- dataset path: `/hockey`
-
-Run the queries from `SPARQL_Query.txt` in the Fuseki query UI.
-
-## Current Output Snapshot
-
-Based on generated files in this repository:
-- Players in base KG: `109,990`
-- Leagues: `29`
-- Seasons: `741`
-- Career stats nodes: `402,346`
-- Enriched players (`match_report.csv`): `16,979` (all `HIGH` confidence via EP ID)
+- `data/processed/match_report.csv`: `15,664` matched players, all `HIGH` confidence
+- Rows with `wikipedia_en`: `10,987`
+- Rows with `has_photo = True`: `6,530`
+- `data/processed/career_predictions.csv`: `2,886` predictions (plus header)
 
 ## Notes
 
-- Some team memberships come from Wikidata statements and can be incomplete for specific players.
-- Dates and labels depend on source quality.
-- The project portfolio and LO mapping are documented in `portfolio.md`.
+- Team memberships depend on Wikidata statement completeness.
+- Some labels and dates vary with source quality.
+- Large generated artifacts (`.ttl`, `.zip`) are included for reproducibility.

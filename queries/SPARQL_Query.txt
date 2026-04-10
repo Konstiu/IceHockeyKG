@@ -1,0 +1,224 @@
+# Query 1: Find a player by name fragment
+PREFIX hockey: <http://hockey-kg.org/ontology#>
+PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
+
+SELECT ?player ?name
+WHERE {
+  ?player a hockey:Player ;
+          foaf:name ?name .
+  FILTER(CONTAINS(LCASE(STR(?name)), "gretzky"))
+}
+LIMIT 20
+
+
+# Query 2: Team history of one player (from Wikidata enrichment)
+PREFIX hockey: <http://hockey-kg.org/ontology#>
+PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
+PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?name ?teamLabel ?from ?until
+WHERE {
+  ?player a hockey:Player ;
+          foaf:name ?name ;
+          hockey:playsFor ?team .
+
+  FILTER(LCASE(STR(?name)) = "wayne gretzky")
+
+  ?team a hockey:Team ;
+        rdfs:label ?teamLabel .
+
+  OPTIONAL { ?team hockey:memberFrom ?from }
+  OPTIONAL { ?team hockey:memberUntil ?until }
+}
+ORDER BY ?from ?teamLabel
+
+
+# Query 3: All players that played for a given team
+PREFIX hockey: <http://hockey-kg.org/ontology#>
+PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
+PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT DISTINCT ?name
+WHERE {
+  ?player a hockey:Player ;
+          foaf:name ?name ;
+          hockey:playsFor ?team .
+
+  ?team rdfs:label ?teamLabel .
+  FILTER(LCASE(STR(?teamLabel)) = "edmonton oilers")
+}
+ORDER BY ?name
+LIMIT 200
+
+
+# Query 4: External links for a specific player
+PREFIX hockey: <http://hockey-kg.org/ontology#>
+PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
+PREFIX owl:    <http://www.w3.org/2002/07/owl#>
+
+SELECT ?name ?wikidata ?wiki
+WHERE {
+  ?player a hockey:Player ;
+          foaf:name ?name .
+
+  FILTER(LCASE(STR(?name)) = "wayne gretzky")
+
+  OPTIONAL { ?player owl:sameAs ?wikidata }
+  OPTIONAL { ?player hockey:wikipediaEN ?wiki }
+}
+
+
+# Query 5: Match confidence and team relations
+PREFIX hockey: <http://hockey-kg.org/ontology#>
+PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
+PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?name ?confidence ?teamLabel ?from ?until
+WHERE {
+  ?player a hockey:Player ;
+          foaf:name ?name ;
+          hockey:matchConfidence ?confidence ;
+          hockey:playsFor ?team .
+
+  FILTER(LCASE(STR(?name)) = "wayne gretzky")
+
+  ?team rdfs:label ?teamLabel .
+  OPTIONAL { ?team hockey:memberFrom ?from }
+  OPTIONAL { ?team hockey:memberUntil ?until }
+}
+ORDER BY ?from
+
+
+# Query 6: Top points-per-game seasons in NHL
+PREFIX hockey: <http://hockey-kg.org/ontology#>
+PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
+PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?seasonLabel ?name (MAX(?ppg) AS ?maxPPG)
+WHERE {
+  ?player a hockey:Player ;
+          foaf:name ?name ;
+          hockey:hasStats ?stats .
+
+  ?stats hockey:inLeague ?league ;
+         hockey:inSeason ?season ;
+         hockey:pointsPerGame ?ppg .
+
+  ?league hockey:leagueName "NHL" .
+  ?season rdfs:label ?seasonLabel .
+}
+GROUP BY ?seasonLabel ?name
+ORDER BY DESC(?maxPPG)
+LIMIT 20
+
+
+# Query 7: Players with most distinct teams
+PREFIX hockey: <http://hockey-kg.org/ontology#>
+PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
+
+SELECT ?name (COUNT(DISTINCT ?team) AS ?teamCount)
+WHERE {
+  ?player a hockey:Player ;
+          foaf:name ?name ;
+          hockey:playsFor ?team .
+}
+GROUP BY ?name
+ORDER BY DESC(?teamCount)
+LIMIT 20
+
+
+# Query 8: Average points-per-game per league
+PREFIX hockey: <http://hockey-kg.org/ontology#>
+
+SELECT ?leagueName (ROUND(AVG(?ppg)*1000)/1000 AS ?avgPPG)
+WHERE {
+  ?player hockey:hasStats ?stats .
+  ?stats hockey:inLeague ?league ;
+         hockey:pointsPerGame ?ppg .
+
+  ?league hockey:leagueName ?leagueName .
+  FILTER(?ppg > 0 && ?ppg < 4)
+}
+GROUP BY ?leagueName
+ORDER BY DESC(?avgPPG)
+LIMIT 30
+
+# Query 9: Spieler mit Wikipedia-Link + ihre besten NHL Saisons
+PREFIX hockey: <http://hockey-kg.org/ontology#>
+PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
+PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
+SELECT ?name ?wiki ?seasonLabel ?ppg
+WHERE {
+  ?player a hockey:Player ;
+          foaf:name ?name ;
+          hockey:wikipediaEN ?wiki ;
+          hockey:hasStats ?stats .
+  ?stats hockey:inLeague ?league ;
+         hockey:inSeason ?season ;
+         hockey:pointsPerGame ?ppg .
+  ?league hockey:leagueName "NHL" .
+  ?season rdfs:label ?seasonLabel .
+  FILTER(?ppg > 1.5)
+}
+ORDER BY DESC(?ppg)
+LIMIT 20
+
+# Query 10: Wie viele gematchte Spieler haben ein Foto?
+PREFIX hockey: <http://hockey-kg.org/ontology#>
+PREFIX schema: <http://schema.org/>
+SELECT (COUNT(?player) AS ?mitFoto)
+WHERE {
+  ?player a hockey:Player ;
+          schema:image ?photo .
+}
+
+# Query 11: Spieler die laut Wikidata für viele Teams gespielt haben
+# UND gute Statistiken hatten (verbindet beide Datenquellen!)
+PREFIX hockey: <http://hockey-kg.org/ontology#>
+PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
+SELECT ?name 
+       (COUNT(DISTINCT ?team) AS ?wdTeams)
+       (SUM(?gp) AS ?totalGames)
+       (MAX(?ppg) AS ?bestPPG)
+WHERE {
+  ?player a hockey:Player ;
+          foaf:name ?name ;
+          hockey:playsFor ?team ;
+          hockey:hasStats ?stats .
+  ?stats hockey:pointsPerGame ?ppg ;
+         hockey:gamesPlayed ?gp .
+}
+GROUP BY ?name
+ORDER BY DESC(?wdTeams)
+LIMIT 20
+
+# Query 12: Nationalitäten-Verteilung der gematchten Spieler
+# (zeigt welche Länder gut in Wikidata repräsentiert sind)
+PREFIX hockey: <http://hockey-kg.org/ontology#>
+SELECT ?nationality (COUNT(?player) AS ?count)
+WHERE {
+  ?player a hockey:Player ;
+          hockey:nationality ?nationality ;
+          owl:sameAs ?wikidata .
+}
+GROUP BY ?nationality
+ORDER BY DESC(?count)
+LIMIT 20
+
+# Query 13: Linked Data Vollständigkeit — was haben wir pro Spieler?
+PREFIX hockey: <http://hockey-kg.org/ontology#>
+PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
+PREFIX owl:    <http://www.w3.org/2002/07/owl#>
+PREFIX schema: <http://schema.org/>
+SELECT ?name ?wikidata ?wiki ?photo
+WHERE {
+  ?player a hockey:Player ;
+          foaf:name ?name ;
+          owl:sameAs ?wikidata .
+  OPTIONAL { ?player hockey:wikipediaEN ?wiki }
+  OPTIONAL { ?player schema:image ?photo }
+  FILTER(CONTAINS(LCASE(?name), "gretzky") || 
+         CONTAINS(LCASE(?name), "lemieux") ||
+         CONTAINS(LCASE(?name), "orr"))
+}
+
